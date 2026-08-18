@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Entrega — Empreendimento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg-deep:#0B1F2E;
+  --bg-panel:#122A3D;
+  --bg-panel-alt:#16334A;
+  --line-ink:#2F5B77;
+  --line-ink-soft:#1D3E54;
+  --accent-cyan:#5EC8D8;
+  --accent-cyan-dim:#3A8A99;
+  --text-primary:#EAF2F5;
+  --text-muted:#8FA9B8;
+  --text-faint:#5B7A8A;
+  --c-nao-iniciado:#4A6274;
+  --c-andamento:#E8A33D;
+  --c-concluido:#45C08A;
+  --c-atrasado:#E0604C;
+  --radius:3px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg-deep);
+  background-image:
+    linear-gradient(var(--line-ink-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-ink-soft) 1px, transparent 1px);
+  background-size:28px 28px;
+  background-attachment:fixed;
+  color:var(--text-primary);
+  font-family:'IBM Plex Sans', sans-serif;
+  min-height:100vh;
+  padding:0 0 60px 0;
+}
+.wrap{max-width:1280px;margin:0 auto;padding:0 28px;}
+.mono{font-family:'IBM Plex Mono', monospace;}
+.eyebrow{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:var(--accent-cyan);
+}
+h1,h2,h3{font-family:'Space Grotesk', sans-serif; margin:0;}
+
+/* ---------- HEADER ---------- */
+header.top{
+  border-bottom:1px solid var(--line-ink);
+  background:linear-gradient(180deg, rgba(18,42,61,0.9), rgba(18,42,61,0.4));
+  backdrop-filter:blur(2px);
+  padding:22px 0 18px 0;
+  position:sticky; top:0; z-index:40;
+}
+.top-row{display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:18px;}
+.title-block h1{font-size:26px; font-weight:700; letter-spacing:-0.01em; color:var(--text-primary);}
+.title-block .sub{color:var(--text-muted); font-size:13.5px; margin-top:6px; max-width:560px; line-height:1.5;}
+.controls{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+.stamp{font-size:11px; color:var(--text-muted);}
+.stamp b{color:var(--accent-cyan); font-weight:500;}
+
+select.filtro{
+  appearance:none;
+  background:var(--bg-panel-alt);
+  border:1px solid var(--line-ink);
+  color:var(--text-primary);
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12.5px;
+  padding:9px 34px 9px 12px;
+  border-radius:var(--radius);
+  cursor:pointer;
+  background-image:linear-gradient(45deg, transparent 50%, var(--accent-cyan) 50%), linear-gradient(135deg, var(--accent-cyan) 50%, transparent 50%);
+  background-position: calc(100% - 16px) center, calc(100% - 11px) center;
+  background-size:5px 5px, 5px 5px;
+  background-repeat:no-repeat;
+}
+select.filtro:focus{outline:2px solid var(--accent-cyan); outline-offset:1px;}
+
+.btn{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12px;
+  letter-spacing:0.03em;
+  background:transparent;
+  border:1px solid var(--accent-cyan-dim);
+  color:var(--accent-cyan);
+  padding:9px 14px;
+  border-radius:var(--radius);
+  cursor:pointer;
+  transition:background .15s ease, color .15s ease;
+}
+.btn:hover{background:var(--accent-cyan); color:var(--bg-deep);}
+.btn:focus-visible{outline:2px solid var(--accent-cyan); outline-offset:2px;}
+input[type=file]{display:none;}
+
+/* ---------- SECTION LABELS ---------- */
+.section{margin-top:46px;}
+.section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:18px;}
+.section-head h2{font-size:14px; color:var(--text-primary); font-weight:600;}
+.section-head .idx{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--accent-cyan-dim); border:1px solid var(--line-ink); padding:2px 7px; border-radius:2px;}
+.section-head .rule{flex:1; height:1px; background:var(--line-ink);}
+
+/* ---------- KPI ---------- */
+.kpi-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line-ink); border:1px solid var(--line-ink); border-radius:var(--radius); overflow:hidden;}
+.kpi{background:var(--bg-panel); padding:20px 22px;}
+.kpi .label{font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);}
+.kpi .value{font-family:'Space Grotesk',sans-serif; font-size:36px; font-weight:700; margin-top:8px; line-height:1;}
+.kpi .value.cyan{color:var(--accent-cyan);}
+.kpi .value.green{color:var(--c-concluido);}
+.kpi .value.red{color:var(--c-atrasado);}
+.kpi .foot{font-size:11px; color:var(--text-muted); margin-top:6px;}
+
+@media(max-width:820px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+<style>
+/* ---------- ELEVATION (signature) ---------- */
+.elevation-panel{
+  background:var(--bg-panel);
+  border:1px solid var(--line-ink);
+  border-radius:var(--radius);
+  padding:26px 26px 20px 26px;
+}
+.elevation-legend{display:flex; gap:18px; flex-wrap:wrap; margin-bottom:22px;}
+.legend-item{display:flex; align-items:center; gap:7px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-muted);}
+.legend-dot{width:9px; height:9px; border-radius:2px;}
+
+.blocks-row{display:flex; gap:26px; align-items:flex-end; flex-wrap:wrap;}
+.block-col{flex:1; min-width:210px; transition:opacity .2s ease;}
+.block-col.muted{opacity:0.28;}
+.block-title{
+  font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:0.05em;
+  color:var(--text-primary); text-align:center; margin-bottom:10px;
+  padding-bottom:8px; border-bottom:1px dashed var(--line-ink);
+  cursor:pointer; user-select:none;
+}
+.block-title .count{color:var(--text-muted); font-size:10.5px;}
+.floor-row{display:flex; gap:6px; margin-bottom:6px; align-items:center;}
+.floor-tag{font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--text-faint); width:14px; text-align:right;}
+.unit-cell{
+  flex:1; height:34px; border-radius:2px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:500;
+  color:var(--bg-deep);
+  position:relative;
+  cursor:default;
+  transition:transform .12s ease;
+}
+.unit-cell:hover{transform:scale(1.06); z-index:5;}
+.unit-cell[data-status="Não Iniciado"]{background:var(--c-nao-iniciado); color:#D6E2E8;}
+.unit-cell[data-status="Em Andamento"]{background:var(--c-andamento); color:#26200A;}
+.unit-cell[data-status="Concluído"]{background:var(--c-concluido); color:#062A1B;}
+.unit-cell[data-status="Atrasado"]{background:var(--c-atrasado); color:#2B0A05;}
+.unit-cell .tip{
+  display:none; position:absolute; bottom:120%; left:50%; transform:translateX(-50%);
+  background:var(--bg-deep); border:1px solid var(--line-ink); color:var(--text-primary);
+  font-size:10.5px; padding:6px 9px; border-radius:2px; white-space:nowrap; z-index:20;
+  box-shadow:0 6px 18px rgba(0,0,0,0.4);
+}
+.unit-cell:hover .tip{display:block;}
+
+/* ---------- CHARTS ---------- */
+.charts-grid{display:grid; grid-template-columns:1.15fr 0.85fr; gap:1px; background:var(--line-ink); border:1px solid var(--line-ink); border-radius:var(--radius); overflow:hidden;}
+.chart-panel{background:var(--bg-panel); padding:22px 24px;}
+.chart-panel h3{font-size:12.5px; font-weight:600; color:var(--text-primary); margin-bottom:18px; font-family:'IBM Plex Mono',monospace; letter-spacing:0.02em;}
+
+.bar-row{display:grid; grid-template-columns:120px 1fr 46px; align-items:center; gap:10px; margin-bottom:13px;}
+.bar-row:last-child{margin-bottom:0;}
+.bar-label{font-size:11.5px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.bar-track{height:9px; background:var(--bg-panel-alt); border-radius:1px; position:relative; overflow:hidden; border:1px solid var(--line-ink-soft);}
+.bar-fill{height:100%; border-radius:1px; transition:width .5s cubic-bezier(.4,0,.2,1);}
+.bar-val{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-primary); text-align:right;}
+
+.donut-wrap{display:flex; align-items:center; gap:26px; flex-wrap:wrap; justify-content:center;}
+.donut{width:158px; height:158px; border-radius:50%; position:relative; flex-shrink:0;}
+.donut::after{content:''; position:absolute; inset:24px; border-radius:50%; background:var(--bg-panel);}
+.donut-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2;}
+.donut-center .pct{font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; color:var(--text-primary);}
+.donut-center .lbl{font-family:'IBM Plex Mono',monospace; font-size:8.5px; color:var(--text-muted); letter-spacing:0.05em; text-transform:uppercase;}
+.donut-legend{display:flex; flex-direction:column; gap:9px;}
+.dl-item{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--text-muted);}
+.dl-item .dl-dot{width:8px; height:8px; border-radius:2px; flex-shrink:0;}
+.dl-item b{color:var(--text-primary); font-family:'IBM Plex Mono',monospace; font-weight:500; margin-left:auto; padding-left:14px;}
+
+@media(max-width:900px){.charts-grid{grid-template-columns:1fr;}}
+
+/* ---------- ATTENTION TABLE ---------- */
+.attn-panel{background:var(--bg-panel); border:1px solid var(--line-ink); border-radius:var(--radius); overflow-x:auto;}
+.attn-panel table{width:100%; border-collapse:collapse; min-width:640px;}
+.attn-panel thead th{
+  text-align:left; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.07em; text-transform:uppercase;
+  color:var(--text-muted); padding:12px 16px; border-bottom:1px solid var(--line-ink); background:var(--bg-panel-alt);
+}
+.attn-panel tbody td{padding:11px 16px; border-bottom:1px solid var(--line-ink-soft); font-size:12.5px; color:var(--text-primary);}
+.attn-panel tbody tr:last-child td{border-bottom:none;}
+.attn-panel tbody tr:hover{background:rgba(94,200,216,0.05);}
+.tag{font-family:'IBM Plex Mono',monospace; font-size:10px; padding:3px 8px; border-radius:2px; display:inline-block;}
+.tag.p-Alta{background:rgba(224,96,76,0.18); color:#F0917F;}
+.tag.p-Média{background:rgba(232,163,61,0.18); color:#F0C078;}
+.tag.p-Baixa{background:rgba(69,192,138,0.18); color:#7FDBB0;}
+.tag.s-Atrasado{background:rgba(224,96,76,0.18); color:#F0917F;}
+.tag.s-Não_Iniciado{background:rgba(74,98,116,0.35); color:#B9CAD4;}
+.tag.s-Em_Andamento{background:rgba(232,163,61,0.18); color:#F0C078;}
+.tag.s-Concluído{background:rgba(69,192,138,0.18); color:#7FDBB0;}
+.empty-state{padding:34px; text-align:center; color:var(--text-muted); font-size:12.5px;}
+.empty-state b{color:var(--c-concluido);}
+
+/* ---------- FOOTER / UPDATE ---------- */
+.update-panel{
+  margin-top:52px; border:1px dashed var(--line-ink); border-radius:var(--radius);
+  padding:20px 24px; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;
+  background:rgba(18,42,61,0.4);
+}
+.update-panel .txt{font-size:12px; color:var(--text-muted); max-width:560px; line-height:1.6;}
+.update-panel .txt b{color:var(--text-primary);}
+footer.note{margin-top:22px; font-size:10.5px; color:var(--text-faint); text-align:center; font-family:'IBM Plex Mono',monospace;}
+
+/* ---------- SOURCE BADGE + CONNECT PANEL ---------- */
+.source-badge{
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+  padding:6px 10px; border-radius:2px; border:1px solid var(--line-ink);
+  color:var(--text-muted); cursor:pointer; background:var(--bg-panel-alt);
+  transition:border-color .15s ease;
+}
+.source-badge:hover{border-color:var(--accent-cyan-dim);}
+.source-dot{width:7px; height:7px; border-radius:50%; flex-shrink:0;}
+.source-dot.live{background:var(--c-concluido); box-shadow:0 0 6px var(--c-concluido);}
+.source-dot.file{background:var(--accent-cyan);}
+.source-dot.snapshot{background:var(--text-faint);}
+.source-dot.loading{background:var(--c-andamento); animation:pulse 1s infinite;}
+.source-dot.error{background:var(--c-atrasado);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+.connect-overlay{
+  display:none; position:fixed; inset:0; background:rgba(6,15,22,0.72);
+  z-index:100; align-items:flex-start; justify-content:center; padding:80px 20px;
+}
+.connect-overlay.open{display:flex;}
+.connect-modal{
+  background:var(--bg-panel); border:1px solid var(--line-ink); border-radius:4px;
+  max-width:560px; width:100%; padding:26px 28px; box-shadow:0 20px 60px rgba(0,0,0,0.5);
+}
+.connect-modal h3{font-size:15px; margin-bottom:6px; color:var(--text-primary);}
+.connect-modal p{font-size:12.5px; color:var(--text-muted); line-height:1.6; margin:0 0 16px 0;}
+.connect-modal ol{font-size:12px; color:var(--text-muted); line-height:1.8; padding-left:18px; margin:0 0 18px 0;}
+.connect-modal input[type=text]{
+  width:100%; background:var(--bg-panel-alt); border:1px solid var(--line-ink); color:var(--text-primary);
+  font-family:'IBM Plex Mono',monospace; font-size:12px; padding:11px 12px; border-radius:2px;
+  margin-bottom:12px;
+}
+.connect-modal input[type=text]:focus{outline:2px solid var(--accent-cyan); outline-offset:1px;}
+.connect-row{display:flex; gap:10px; flex-wrap:wrap;}
+.connect-status{font-size:11.5px; margin-top:12px; font-family:'IBM Plex Mono',monospace;}
+.connect-status.ok{color:var(--c-concluido);}
+.connect-status.err{color:var(--c-atrasado);}
+.connect-close{position:absolute; top:16px; right:18px; background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer;}
+.connect-modal{position:relative;}
+.permalink-box{
+  margin-top:16px; padding-top:16px; border-top:1px dashed var(--line-ink); display:none;
+}
+.permalink-box.show{display:block;}
+.permalink-box .lnk{
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--accent-cyan);
+  word-break:break-all; background:var(--bg-panel-alt); padding:8px 10px; border-radius:2px; margin:8px 0 10px 0;
+}
+</style>
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <div class="title-block">
+        <div class="eyebrow">Controle de Entrega · Empreendimento</div>
+        <h1>Painel Gerencial de Obra</h1>
+        <div class="sub">36 unidades · 3 blocos · 6 pavimentos · 5 serviços de entrega por unidade. Filtre por bloco para focar a análise.</div>
+      </div>
+      <div class="controls">
+        <div>
+          <select id="filtroBloco" class="filtro">
+            <option value="Todos">Todos os blocos</option>
+            <option value="Bloco A">Bloco A</option>
+            <option value="Bloco B">Bloco B</option>
+            <option value="Bloco C">Bloco C</option>
+          </select>
+        </div>
+        <label class="btn" for="fileInput">Carregar arquivo (.xlsx)</label>
+        <input type="file" id="fileInput" accept=".xlsx">
+        <div class="source-badge" id="sourceBadge" onclick="openConnectModal()">
+          <span class="source-dot snapshot" id="sourceDot"></span>
+          <span id="sourceLabel">Configurar fonte de dados</span>
+        </div>
+        <div class="stamp">Dados de <b id="stampDate">—</b></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="connect-overlay" id="connectOverlay">
+  <div class="connect-modal">
+    <button class="connect-close" onclick="closeConnectModal()" aria-label="Fechar">✕</button>
+    <h3>Conectar fonte de dados ao vivo</h3>
+    <p>Cole aqui o link publicado (CSV) da aba <b style="color:var(--text-primary)">"Controle Detalhado"</b> do seu Google Sheets. A partir daí o painel busca os dados mais recentes sempre que a página é aberta.</p>
+    <ol>
+      <li>No Google Sheets: <b style="color:var(--text-primary)">Arquivo → Compartilhar → Publicar na Web</b></li>
+      <li>Escolha a aba "Controle Detalhado" e o formato <b style="color:var(--text-primary)">CSV</b></li>
+      <li>Clique em Publicar e copie o link gerado</li>
+      <li>Cole o link abaixo e clique em Conectar</li>
+    </ol>
+    <input type="text" id="csvUrlInput" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
+    <div class="connect-row">
+      <button class="btn" onclick="connectSource()">Conectar</button>
+      <button class="btn" onclick="disconnectSource()">Usar exemplo offline</button>
+    </div>
+    <div class="connect-status" id="connectStatus"></div>
+    <div class="permalink-box" id="permalinkBox">
+      <div style="font-size:11.5px;color:var(--text-muted);">Link permanente com esta fonte já conectada — hospede este arquivo com esse endereço para um painel sempre atualizado:</div>
+      <div class="lnk" id="permalinkText"></div>
+      <button class="btn" onclick="copyPermalink()">Copiar link</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+
+  <section class="section" style="margin-top:32px;">
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="label">Unidades no filtro</div>
+        <div class="value" id="kpiTotal">—</div>
+        <div class="foot">de 36 unidades no total</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Concluídas</div>
+        <div class="value green" id="kpiConcluidas">—</div>
+        <div class="foot" id="kpiConcluidasFoot">—</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Em atraso</div>
+        <div class="value red" id="kpiAtrasadas">—</div>
+        <div class="foot">unidades com ao menos 1 item vencido</div>
+      </div>
+      <div class="kpi">
+        <div class="label">% concluído</div>
+        <div class="value cyan" id="kpiPct">—</div>
+        <div class="foot">do total de serviços da seleção</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <span class="idx">01</span>
+      <h2>Elevação do Empreendimento</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="elevation-panel">
+      <div class="elevation-legend">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--c-nao-iniciado)"></span>Não iniciado</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--c-andamento)"></span>Em andamento</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--c-concluido)"></span>Concluído</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--c-atrasado)"></span>Atrasado</div>
+      </div>
+      <div class="blocks-row" id="elevation"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <span class="idx">02</span>
+      <h2>Progresso por Bloco &amp; Status Geral</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-panel">
+        <h3>% CONCLUÍDO POR BLOCO</h3>
+        <div id="chartBloco"></div>
+      </div>
+      <div class="chart-panel">
+        <h3>DISTRIBUIÇÃO DE STATUS</h3>
+        <div id="chartDonut"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <span class="idx">03</span>
+      <h2>Progresso por Serviço</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-panel">
+        <h3>% CONCLUÍDO POR SERVIÇO</h3>
+        <div id="chartServico"></div>
+      </div>
+      <div class="chart-panel">
+        <h3>ITENS ATRASADOS POR SERVIÇO</h3>
+        <div id="chartAtraso"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <span class="idx">04</span>
+      <h2>Itens em Atenção</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="attn-panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Apto</th><th>Bloco</th><th>Serviço</th><th>Responsável</th>
+            <th>Prioridade</th><th>Prazo</th><th>Status</th><th>Atraso</th>
+          </tr>
+        </thead>
+        <tbody id="attnBody"></tbody>
+      </table>
+      <div class="empty-state" id="attnEmpty" style="display:none;">Nenhum item de prioridade alta ou em atraso no filtro selecionado. <b>Tudo sob controle.</b></div>
+    </div>
+  </section>
+
+  <div class="update-panel">
+    <div class="txt">
+      Este painel calcula tudo a partir da aba <b>"Controle Detalhado"</b>. Use <b>"Configurar fonte de dados"</b> no topo para conectar direto ao seu Google Sheets (atualização automática) ou <b>"Carregar arquivo"</b> para subir um .xlsx manualmente.
+    </div>
+    <label class="btn" for="fileInput2">Selecionar arquivo</label>
+    <input type="file" id="fileInput2" accept=".xlsx">
+  </div>
+
+  <footer class="note">PAINEL GERADO A PARTIR DA PLANILHA DE CONTROLE · USO INTERNO DA ADMINISTRAÇÃO DA OBRA</footer>
+</div>
+<script>
+const SERVICOS = ["comissionamento","pu","revisao_pintura","primeira_vistoria","entrega_qualidade"];
+const SERVICO_LABEL = {
+  comissionamento:"Comissionamento", pu:"PU", revisao_pintura:"Revisão de Pintura",
+  primeira_vistoria:"1ª Vistoria", entrega_qualidade:"Entrega Qualidade"
+};
+const STATUS_COLOR = {
+  "Não Iniciado":"var(--c-nao-iniciado)", "Em Andamento":"var(--c-andamento)",
+  "Concluído":"var(--c-concluido)", "Atrasado":"var(--c-atrasado)"
+};
+const BLOCOS = ["Bloco A","Bloco B","Bloco C"];
+
+// CONFIG.CSV_URL can be baked in permanently — if set, the dashboard connects
+// automatically on load without needing a ?src= link or manual setup.
+const CONFIG = { CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRxB8weLdgL2lzVEa-gY3nAuT-jfkkeUhJn_IN4lIN_1V9XJwBfuEzjxbhST3k4Ng/pub?gid=1305498509&single=true&output=csv" };
+
+const DEFAULT_CONTROLE = {"dados": [{"apartamento": "101", "bloco": "Bloco A", "pavimento": 1, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "102", "bloco": "Bloco A", "pavimento": 1, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "103", "bloco": "Bloco B", "pavimento": 1, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "104", "bloco": "Bloco B", "pavimento": 1, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "105", "bloco": "Bloco C", "pavimento": 1, "comissionamento": "Atrasado", "pu": "Concluído", "revisao_pintura": "Concluído", "primeira_vistoria": "Concluído", "entrega_qualidade": "Em Andamento", "pct_concluido": 0.6, "status_geral": "Atrasado", "dias_atraso": 1}, {"apartamento": "106", "bloco": "Bloco C", "pavimento": 1, "comissionamento": "Atrasado", "pu": "Concluído", "revisao_pintura": "Concluído", "primeira_vistoria": "Concluído", "entrega_qualidade": "Em Andamento", "pct_concluido": 0.6, "status_geral": "Atrasado", "dias_atraso": 1}, {"apartamento": "201", "bloco": "Bloco A", "pavimento": 2, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "202", "bloco": "Bloco A", "pavimento": 2, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "203", "bloco": "Bloco B", "pavimento": 2, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "204", "bloco": "Bloco B", "pavimento": 2, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "205", "bloco": "Bloco C", "pavimento": 2, "comissionamento": "Não Iniciado", "pu": "Concluído", "revisao_pintura": "Em Andamento", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0.2, "status_geral": "Em Andamento", "dias_atraso": 0}, {"apartamento": "206", "bloco": "Bloco C", "pavimento": 2, "comissionamento": "Em Andamento", "pu": "Concluído", "revisao_pintura": "Em Andamento", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0.2, "status_geral": "Em Andamento", "dias_atraso": 0}, {"apartamento": "301", "bloco": "Bloco A", "pavimento": 3, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "302", "bloco": "Bloco A", "pavimento": 3, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "303", "bloco": "Bloco B", "pavimento": 3, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "304", "bloco": "Bloco B", "pavimento": 3, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "305", "bloco": "Bloco C", "pavimento": 3, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "306", "bloco": "Bloco C", "pavimento": 3, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "401", "bloco": "Bloco A", "pavimento": 4, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "402", "bloco": "Bloco A", "pavimento": 4, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "403", "bloco": "Bloco B", "pavimento": 4, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "404", "bloco": "Bloco B", "pavimento": 4, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "405", "bloco": "Bloco C", "pavimento": 4, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "406", "bloco": "Bloco C", "pavimento": 4, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "501", "bloco": "Bloco A", "pavimento": 5, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "502", "bloco": "Bloco A", "pavimento": 5, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "503", "bloco": "Bloco B", "pavimento": 5, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "504", "bloco": "Bloco B", "pavimento": 5, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "505", "bloco": "Bloco C", "pavimento": 5, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "506", "bloco": "Bloco C", "pavimento": 5, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "601", "bloco": "Bloco A", "pavimento": 6, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "602", "bloco": "Bloco A", "pavimento": 6, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "603", "bloco": "Bloco B", "pavimento": 6, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "604", "bloco": "Bloco B", "pavimento": 6, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "605", "bloco": "Bloco C", "pavimento": 6, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}, {"apartamento": "606", "bloco": "Bloco C", "pavimento": 6, "comissionamento": "Não Iniciado", "pu": "Não Iniciado", "revisao_pintura": "Não Iniciado", "primeira_vistoria": "Não Iniciado", "entrega_qualidade": "Não Iniciado", "pct_concluido": 0, "status_geral": "Não Iniciado", "dias_atraso": 0}], "controle": [{"apartamento": "101", "bloco": "Bloco A", "pavimento": 1, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "101", "bloco": "Bloco A", "pavimento": 1, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "101", "bloco": "Bloco A", "pavimento": 1, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "101", "bloco": "Bloco A", "pavimento": 1, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "101", "bloco": "Bloco A", "pavimento": 1, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "102", "bloco": "Bloco A", "pavimento": 1, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "102", "bloco": "Bloco A", "pavimento": 1, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "102", "bloco": "Bloco A", "pavimento": 1, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "102", "bloco": "Bloco A", "pavimento": 1, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "102", "bloco": "Bloco A", "pavimento": 1, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "103", "bloco": "Bloco B", "pavimento": 1, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "103", "bloco": "Bloco B", "pavimento": 1, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "103", "bloco": "Bloco B", "pavimento": 1, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "103", "bloco": "Bloco B", "pavimento": 1, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "103", "bloco": "Bloco B", "pavimento": 1, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "104", "bloco": "Bloco B", "pavimento": 1, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "104", "bloco": "Bloco B", "pavimento": 1, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "104", "bloco": "Bloco B", "pavimento": 1, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "104", "bloco": "Bloco B", "pavimento": 1, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "104", "bloco": "Bloco B", "pavimento": 1, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "105", "bloco": "Bloco C", "pavimento": 1, "servico": "Comissionamento", "prioridade": "Alta", "responsavel": null, "status": "Atrasado", "data_inicio": "2026-08-17", "data_termino": "2026-08-17", "data_execucao": null, "dias_atraso": 1, "observacoes": null}, {"apartamento": "105", "bloco": "Bloco C", "pavimento": 1, "servico": "PU", "prioridade": "Baixa", "responsavel": null, "status": "Concluído", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "105", "bloco": "Bloco C", "pavimento": 1, "servico": "Revisão de Pintura", "prioridade": "Baixa", "responsavel": null, "status": "Concluído", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "105", "bloco": "Bloco C", "pavimento": 1, "servico": "1ª Vistoria", "prioridade": "Baixa", "responsavel": null, "status": "Concluído", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "105", "bloco": "Bloco C", "pavimento": 1, "servico": "Entrega Qualidade", "prioridade": "Alta", "responsavel": "Letícia", "status": "Em Andamento", "data_inicio": "2026-08-18", "data_termino": "2026-08-18", "data_execucao": "2026-08-18", "dias_atraso": 0, "observacoes": "Revistoria para Alessa"}, {"apartamento": "106", "bloco": "Bloco C", "pavimento": 1, "servico": "Comissionamento", "prioridade": "Alta", "responsavel": "Luís", "status": "Atrasado", "data_inicio": "2026-08-17", "data_termino": "2026-08-17", "data_execucao": null, "dias_atraso": 1, "observacoes": null}, {"apartamento": "106", "bloco": "Bloco C", "pavimento": 1, "servico": "PU", "prioridade": "Baixa", "responsavel": null, "status": "Concluído", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "106", "bloco": "Bloco C", "pavimento": 1, "servico": "Revisão de Pintura", "prioridade": "Baixa", "responsavel": null, "status": "Concluído", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "106", "bloco": "Bloco C", "pavimento": 1, "servico": "1ª Vistoria", "prioridade": "Baixa", "responsavel": null, "status": "Concluído", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "106", "bloco": "Bloco C", "pavimento": 1, "servico": "Entrega Qualidade", "prioridade": "Alta", "responsavel": "Letícia", "status": "Em Andamento", "data_inicio": "2026-08-18", "data_termino": "2026-08-18", "data_execucao": "2026-08-18", "dias_atraso": 0, "observacoes": "Revistoria para Alessa"}, {"apartamento": "201", "bloco": "Bloco A", "pavimento": 2, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "201", "bloco": "Bloco A", "pavimento": 2, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "201", "bloco": "Bloco A", "pavimento": 2, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "201", "bloco": "Bloco A", "pavimento": 2, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "201", "bloco": "Bloco A", "pavimento": 2, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "202", "bloco": "Bloco A", "pavimento": 2, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "202", "bloco": "Bloco A", "pavimento": 2, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "202", "bloco": "Bloco A", "pavimento": 2, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "202", "bloco": "Bloco A", "pavimento": 2, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "202", "bloco": "Bloco A", "pavimento": 2, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "203", "bloco": "Bloco B", "pavimento": 2, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "203", "bloco": "Bloco B", "pavimento": 2, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "203", "bloco": "Bloco B", "pavimento": 2, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "203", "bloco": "Bloco B", "pavimento": 2, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "203", "bloco": "Bloco B", "pavimento": 2, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "204", "bloco": "Bloco B", "pavimento": 2, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "204", "bloco": "Bloco B", "pavimento": 2, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "204", "bloco": "Bloco B", "pavimento": 2, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "204", "bloco": "Bloco B", "pavimento": 2, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "204", "bloco": "Bloco B", "pavimento": 2, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "205", "bloco": "Bloco C", "pavimento": 2, "servico": "Comissionamento", "prioridade": "Alta", "responsavel": "Luís", "status": "Não Iniciado", "data_inicio": "2026-08-18", "data_termino": "2026-08-18", "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "205", "bloco": "Bloco C", "pavimento": 2, "servico": "PU", "prioridade": "Baixa", "responsavel": null, "status": "Concluído", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "205", "bloco": "Bloco C", "pavimento": 2, "servico": "Revisão de Pintura", "prioridade": "Alta", "responsavel": "Pádua", "status": "Em Andamento", "data_inicio": "2026-08-17", "data_termino": "2026-08-19", "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "205", "bloco": "Bloco C", "pavimento": 2, "servico": "1ª Vistoria", "prioridade": "Média", "responsavel": "Letícia", "status": "Não Iniciado", "data_inicio": "2026-08-21", "data_termino": "2026-08-21", "data_execucao": null, "dias_atraso": 0, "observacoes": "Vistoria Alessa"}, {"apartamento": "205", "bloco": "Bloco C", "pavimento": 2, "servico": "Entrega Qualidade", "prioridade": "Alta", "responsavel": "Letícia", "status": "Não Iniciado", "data_inicio": "2026-08-25", "data_termino": "2026-08-25", "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "206", "bloco": "Bloco C", "pavimento": 2, "servico": "Comissionamento", "prioridade": "Alta", "responsavel": "Luís", "status": "Em Andamento", "data_inicio": "2026-08-17", "data_termino": "2026-08-18", "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "206", "bloco": "Bloco C", "pavimento": 2, "servico": "PU", "prioridade": "Baixa", "responsavel": null, "status": "Concluído", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "206", "bloco": "Bloco C", "pavimento": 2, "servico": "Revisão de Pintura", "prioridade": "Alta", "responsavel": "Pádua", "status": "Em Andamento", "data_inicio": "2026-08-17", "data_termino": "2026-08-19", "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "206", "bloco": "Bloco C", "pavimento": 2, "servico": "1ª Vistoria", "prioridade": "Média", "responsavel": "Letícia", "status": "Não Iniciado", "data_inicio": "2026-08-21", "data_termino": "2026-08-21", "data_execucao": null, "dias_atraso": 0, "observacoes": "Vistoria Alessa"}, {"apartamento": "206", "bloco": "Bloco C", "pavimento": 2, "servico": "Entrega Qualidade", "prioridade": "Alta", "responsavel": "Letícia", "status": "Não Iniciado", "data_inicio": "2026-08-25", "data_termino": "2026-08-25", "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "301", "bloco": "Bloco A", "pavimento": 3, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "301", "bloco": "Bloco A", "pavimento": 3, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "301", "bloco": "Bloco A", "pavimento": 3, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "301", "bloco": "Bloco A", "pavimento": 3, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "301", "bloco": "Bloco A", "pavimento": 3, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "302", "bloco": "Bloco A", "pavimento": 3, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "302", "bloco": "Bloco A", "pavimento": 3, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "302", "bloco": "Bloco A", "pavimento": 3, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "302", "bloco": "Bloco A", "pavimento": 3, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "302", "bloco": "Bloco A", "pavimento": 3, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "303", "bloco": "Bloco B", "pavimento": 3, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "303", "bloco": "Bloco B", "pavimento": 3, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "303", "bloco": "Bloco B", "pavimento": 3, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "303", "bloco": "Bloco B", "pavimento": 3, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "303", "bloco": "Bloco B", "pavimento": 3, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "304", "bloco": "Bloco B", "pavimento": 3, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "304", "bloco": "Bloco B", "pavimento": 3, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "304", "bloco": "Bloco B", "pavimento": 3, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "304", "bloco": "Bloco B", "pavimento": 3, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "304", "bloco": "Bloco B", "pavimento": 3, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "305", "bloco": "Bloco C", "pavimento": 3, "servico": "Comissionamento", "prioridade": "Alta", "responsavel": "Luís", "status": "Não Iniciado", "data_inicio": "2026-08-19", "data_termino": "2026-08-19", "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "305", "bloco": "Bloco C", "pavimento": 3, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "305", "bloco": "Bloco C", "pavimento": 3, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "305", "bloco": "Bloco C", "pavimento": 3, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "305", "bloco": "Bloco C", "pavimento": 3, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "306", "bloco": "Bloco C", "pavimento": 3, "servico": "Comissionamento", "prioridade": "Alta", "responsavel": "Luís", "status": "Não Iniciado", "data_inicio": "2026-08-19", "data_termino": "2026-08-19", "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "306", "bloco": "Bloco C", "pavimento": 3, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "306", "bloco": "Bloco C", "pavimento": 3, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "306", "bloco": "Bloco C", "pavimento": 3, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "306", "bloco": "Bloco C", "pavimento": 3, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "401", "bloco": "Bloco A", "pavimento": 4, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "401", "bloco": "Bloco A", "pavimento": 4, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "401", "bloco": "Bloco A", "pavimento": 4, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "401", "bloco": "Bloco A", "pavimento": 4, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "401", "bloco": "Bloco A", "pavimento": 4, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "402", "bloco": "Bloco A", "pavimento": 4, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "402", "bloco": "Bloco A", "pavimento": 4, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "402", "bloco": "Bloco A", "pavimento": 4, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "402", "bloco": "Bloco A", "pavimento": 4, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "402", "bloco": "Bloco A", "pavimento": 4, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "403", "bloco": "Bloco B", "pavimento": 4, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "403", "bloco": "Bloco B", "pavimento": 4, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "403", "bloco": "Bloco B", "pavimento": 4, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "403", "bloco": "Bloco B", "pavimento": 4, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "403", "bloco": "Bloco B", "pavimento": 4, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "404", "bloco": "Bloco B", "pavimento": 4, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "404", "bloco": "Bloco B", "pavimento": 4, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "404", "bloco": "Bloco B", "pavimento": 4, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "404", "bloco": "Bloco B", "pavimento": 4, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "404", "bloco": "Bloco B", "pavimento": 4, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "405", "bloco": "Bloco C", "pavimento": 4, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "405", "bloco": "Bloco C", "pavimento": 4, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "405", "bloco": "Bloco C", "pavimento": 4, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "405", "bloco": "Bloco C", "pavimento": 4, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "405", "bloco": "Bloco C", "pavimento": 4, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "406", "bloco": "Bloco C", "pavimento": 4, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "406", "bloco": "Bloco C", "pavimento": 4, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "406", "bloco": "Bloco C", "pavimento": 4, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "406", "bloco": "Bloco C", "pavimento": 4, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "406", "bloco": "Bloco C", "pavimento": 4, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "501", "bloco": "Bloco A", "pavimento": 5, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "501", "bloco": "Bloco A", "pavimento": 5, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "501", "bloco": "Bloco A", "pavimento": 5, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "501", "bloco": "Bloco A", "pavimento": 5, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "501", "bloco": "Bloco A", "pavimento": 5, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "502", "bloco": "Bloco A", "pavimento": 5, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "502", "bloco": "Bloco A", "pavimento": 5, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "502", "bloco": "Bloco A", "pavimento": 5, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "502", "bloco": "Bloco A", "pavimento": 5, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "502", "bloco": "Bloco A", "pavimento": 5, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "503", "bloco": "Bloco B", "pavimento": 5, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "503", "bloco": "Bloco B", "pavimento": 5, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "503", "bloco": "Bloco B", "pavimento": 5, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "503", "bloco": "Bloco B", "pavimento": 5, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "503", "bloco": "Bloco B", "pavimento": 5, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "504", "bloco": "Bloco B", "pavimento": 5, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "504", "bloco": "Bloco B", "pavimento": 5, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "504", "bloco": "Bloco B", "pavimento": 5, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "504", "bloco": "Bloco B", "pavimento": 5, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "504", "bloco": "Bloco B", "pavimento": 5, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "505", "bloco": "Bloco C", "pavimento": 5, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "505", "bloco": "Bloco C", "pavimento": 5, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "505", "bloco": "Bloco C", "pavimento": 5, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "505", "bloco": "Bloco C", "pavimento": 5, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "505", "bloco": "Bloco C", "pavimento": 5, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "506", "bloco": "Bloco C", "pavimento": 5, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "506", "bloco": "Bloco C", "pavimento": 5, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "506", "bloco": "Bloco C", "pavimento": 5, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "506", "bloco": "Bloco C", "pavimento": 5, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "506", "bloco": "Bloco C", "pavimento": 5, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "601", "bloco": "Bloco A", "pavimento": 6, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "601", "bloco": "Bloco A", "pavimento": 6, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "601", "bloco": "Bloco A", "pavimento": 6, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "601", "bloco": "Bloco A", "pavimento": 6, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "601", "bloco": "Bloco A", "pavimento": 6, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "602", "bloco": "Bloco A", "pavimento": 6, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "602", "bloco": "Bloco A", "pavimento": 6, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "602", "bloco": "Bloco A", "pavimento": 6, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "602", "bloco": "Bloco A", "pavimento": 6, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "602", "bloco": "Bloco A", "pavimento": 6, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "603", "bloco": "Bloco B", "pavimento": 6, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "603", "bloco": "Bloco B", "pavimento": 6, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "603", "bloco": "Bloco B", "pavimento": 6, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "603", "bloco": "Bloco B", "pavimento": 6, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "603", "bloco": "Bloco B", "pavimento": 6, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "604", "bloco": "Bloco B", "pavimento": 6, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "604", "bloco": "Bloco B", "pavimento": 6, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "604", "bloco": "Bloco B", "pavimento": 6, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "604", "bloco": "Bloco B", "pavimento": 6, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "604", "bloco": "Bloco B", "pavimento": 6, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "605", "bloco": "Bloco C", "pavimento": 6, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "605", "bloco": "Bloco C", "pavimento": 6, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "605", "bloco": "Bloco C", "pavimento": 6, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "605", "bloco": "Bloco C", "pavimento": 6, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "605", "bloco": "Bloco C", "pavimento": 6, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "606", "bloco": "Bloco C", "pavimento": 6, "servico": "Comissionamento", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "606", "bloco": "Bloco C", "pavimento": 6, "servico": "PU", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "606", "bloco": "Bloco C", "pavimento": 6, "servico": "Revisão de Pintura", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "606", "bloco": "Bloco C", "pavimento": 6, "servico": "1ª Vistoria", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}, {"apartamento": "606", "bloco": "Bloco C", "pavimento": 6, "servico": "Entrega Qualidade", "prioridade": null, "responsavel": null, "status": "Não Iniciado", "data_inicio": null, "data_termino": null, "data_execucao": null, "dias_atraso": 0, "observacoes": null}], "gerado_em": "2026-08-18"};
+
+function buildDadosFromControle(controle){
+  const groups = {};
+  controle.forEach(row => {
+    if(!row.apartamento) return;
+    if(!groups[row.apartamento]){
+      groups[row.apartamento] = { apartamento: row.apartamento, bloco: row.bloco, pavimento: row.pavimento, servicos: {}, maxAtraso: 0 };
+    }
+    groups[row.apartamento].servicos[row.servico] = row.status || "Não Iniciado";
+    groups[row.apartamento].maxAtraso = Math.max(groups[row.apartamento].maxAtraso, Number(row.dias_atraso)||0);
+    if(row.bloco) groups[row.apartamento].bloco = row.bloco;
+    if(row.pavimento) groups[row.apartamento].pavimento = row.pavimento;
+  });
+  return Object.values(groups).map(g => {
+    const statuses = SERVICOS.map(key => g.servicos[SERVICO_LABEL[key]] || "Não Iniciado");
+    const concl = statuses.filter(s => s === "Concluído").length;
+    const pct = concl / SERVICOS.length;
+    const diasAtraso = g.maxAtraso;
+    let statusGeral;
+    if(pct === 1) statusGeral = "Concluído";
+    else if(diasAtraso > 0) statusGeral = "Atrasado";
+    else if(pct === 0) statusGeral = "Não Iniciado";
+    else statusGeral = "Em Andamento";
+    const out = {apartamento:g.apartamento, bloco:g.bloco, pavimento:g.pavimento, pct_concluido:pct, status_geral:statusGeral, dias_atraso:diasAtraso};
+    SERVICOS.forEach((key,i) => out[key] = statuses[i]);
+    return out;
+  });
+}
+
+let state = {
+  controle: DEFAULT_CONTROLE.controle,
+  dados: buildDadosFromControle(DEFAULT_CONTROLE.controle),
+  filtro: "Todos",
+  geradoEm: DEFAULT_CONTROLE.gerado_em,
+  source: "snapshot",
+  sourceDetail: ""
+};
+
+function fmtDate(iso){
+  if(!iso) return "—";
+  const [y,m,d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function filteredDados(){
+  return state.filtro === "Todos" ? state.dados : state.dados.filter(d => d.bloco === state.filtro);
+}
+function filteredControle(){
+  return state.filtro === "Todos" ? state.controle : state.controle.filter(c => c.bloco === state.filtro);
+}
+
+function computeKPIs(){
+  const d = filteredDados();
+  const total = d.length;
+  const concluidas = d.filter(x => x.status_geral === "Concluído").length;
+  const atrasadas = d.filter(x => x.status_geral === "Atrasado").length;
+  const pct = total ? concluidas/total : 0;
+  return {total, concluidas, atrasadas, pct};
+}
+
+function renderKPIs(){
+  const k = computeKPIs();
+  document.getElementById("kpiTotal").textContent = k.total;
+  document.getElementById("kpiConcluidas").textContent = k.concluidas;
+  document.getElementById("kpiConcluidasFoot").textContent = `${k.total ? Math.round(k.concluidas/k.total*100) : 0}% do filtro`;
+  document.getElementById("kpiAtrasadas").textContent = k.atrasadas;
+  document.getElementById("kpiPct").textContent = Math.round(k.pct*100) + "%";
+}
+
+function renderElevation(){
+  const el = document.getElementById("elevation");
+  el.innerHTML = "";
+  const byApto = {};
+  state.dados.forEach(d => byApto[d.apartamento] = d);
+
+  BLOCOS.forEach(bloco => {
+    const col = document.createElement("div");
+    col.className = "block-col" + (state.filtro !== "Todos" && state.filtro !== bloco ? " muted" : "");
+    const countConcl = state.dados.filter(d => d.bloco===bloco && d.status_geral==="Concluído").length;
+    const title = document.createElement("div");
+    title.className = "block-title";
+    title.innerHTML = `${bloco} <span class="count">(${countConcl}/12 concl.)</span>`;
+    title.onclick = () => { document.getElementById("filtroBloco").value = (state.filtro===bloco ? "Todos" : bloco); document.getElementById("filtroBloco").dispatchEvent(new Event("change")); };
+    col.appendChild(title);
+
+    const sufixos = bloco==="Bloco A" ? ["01","02"] : bloco==="Bloco B" ? ["03","04"] : ["05","06"];
+    for(let pav=6; pav>=1; pav--){
+      const row = document.createElement("div");
+      row.className = "floor-row";
+      const tag = document.createElement("div");
+      tag.className = "floor-tag";
+      tag.textContent = pav;
+      row.appendChild(tag);
+      sufixos.forEach(suf => {
+        const apto = `${pav}${suf}`;
+        const info = byApto[apto];
+        const cell = document.createElement("div");
+        cell.className = "unit-cell";
+        cell.dataset.status = info ? info.status_geral : "Não Iniciado";
+        cell.textContent = apto;
+        const tip = document.createElement("div");
+        tip.className = "tip";
+        tip.textContent = info ? `${apto} · ${info.status_geral} · ${Math.round(info.pct_concluido*100)}%` : apto;
+        cell.appendChild(tip);
+        row.appendChild(cell);
+      });
+      col.appendChild(row);
+    }
+    el.appendChild(col);
+  });
+}
+</script>
+<script>
+function renderChartBloco(){
+  const wrap = document.getElementById("chartBloco");
+  wrap.innerHTML = "";
+  BLOCOS.forEach(bloco => {
+    const units = state.dados.filter(d => d.bloco === bloco);
+    const concl = units.filter(d => d.status_geral === "Concluído").length;
+    const pct = units.length ? concl/units.length : 0;
+    const row = document.createElement("div");
+    row.className = "bar-row";
+    row.innerHTML = `
+      <div class="bar-label">${bloco}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(pct*100)}%; background:var(--accent-cyan);"></div></div>
+      <div class="bar-val">${Math.round(pct*100)}%</div>`;
+    wrap.appendChild(row);
+  });
+}
+
+function renderChartServico(){
+  const wrap = document.getElementById("chartServico");
+  wrap.innerHTML = "";
+  const d = filteredDados();
+  SERVICOS.forEach(key => {
+    const total = d.length;
+    const concl = d.filter(x => x[key] === "Concluído").length;
+    const pct = total ? concl/total : 0;
+    const row = document.createElement("div");
+    row.className = "bar-row";
+    row.innerHTML = `
+      <div class="bar-label">${SERVICO_LABEL[key]}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(pct*100)}%; background:var(--c-concluido);"></div></div>
+      <div class="bar-val">${Math.round(pct*100)}%</div>`;
+    wrap.appendChild(row);
+  });
+}
+
+function renderChartAtraso(){
+  const wrap = document.getElementById("chartAtraso");
+  wrap.innerHTML = "";
+  const c = filteredControle();
+  const maxCount = Math.max(1, ...SERVICOS.map(key => {
+    const label = SERVICO_LABEL[key];
+    return c.filter(x => x.servico === label && x.dias_atraso > 0).length;
+  }));
+  SERVICOS.forEach(key => {
+    const label = SERVICO_LABEL[key];
+    const count = c.filter(x => x.servico === label && x.dias_atraso > 0).length;
+    const pct = count / maxCount;
+    const row = document.createElement("div");
+    row.className = "bar-row";
+    row.innerHTML = `
+      <div class="bar-label">${label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(pct*100)}%; background:var(--c-atrasado);"></div></div>
+      <div class="bar-val">${count}</div>`;
+    wrap.appendChild(row);
+  });
+}
+
+function renderDonut(){
+  const wrap = document.getElementById("chartDonut");
+  wrap.innerHTML = "";
+  const d = filteredDados();
+  const total = d.length || 1;
+  const statuses = ["Concluído","Em Andamento","Não Iniciado","Atrasado"];
+  const counts = statuses.map(s => d.filter(x => x.status_geral === s).length);
+
+  let acc = 0;
+  const stops = [];
+  statuses.forEach((s,i) => {
+    const pctStart = acc / total * 100;
+    acc += counts[i];
+    const pctEnd = acc / total * 100;
+    stops.push(`${STATUS_COLOR[s]} ${pctStart}% ${pctEnd}%`);
+  });
+
+  const donutBox = document.createElement("div");
+  donutBox.className = "donut-wrap";
+  const donut = document.createElement("div");
+  donut.className = "donut";
+  donut.style.background = counts.every(c=>c===0) ? "var(--c-nao-iniciado)" : `conic-gradient(${stops.join(",")})`;
+  const center = document.createElement("div");
+  center.className = "donut-center";
+  const pctConcl = Math.round((counts[0]/total)*100);
+  center.innerHTML = `<div class="pct">${pctConcl}%</div><div class="lbl">Concluído</div>`;
+  donut.appendChild(center);
+
+  const legend = document.createElement("div");
+  legend.className = "donut-legend";
+  statuses.forEach((s,i) => {
+    const item = document.createElement("div");
+    item.className = "dl-item";
+    item.innerHTML = `<span class="dl-dot" style="background:${STATUS_COLOR[s]}"></span>${s}<b>${counts[i]}</b>`;
+    legend.appendChild(item);
+  });
+
+  donutBox.appendChild(donut);
+  donutBox.appendChild(legend);
+  wrap.appendChild(donutBox);
+}
+</script>
+<script>
+function renderAttention(){
+  const body = document.getElementById("attnBody");
+  const empty = document.getElementById("attnEmpty");
+  body.innerHTML = "";
+  const c = filteredControle();
+  let items = c.filter(x => x.status !== "Concluído" && (x.prioridade === "Alta" || x.dias_atraso > 0));
+  items.sort((a,b) => (b.dias_atraso||0) - (a.dias_atraso||0) || (a.prioridade==="Alta"?-1:1));
+  items = items.slice(0, 20);
+
+  if(items.length === 0){
+    empty.style.display = "block";
+    document.querySelector(".attn-panel table").style.display = "none";
+    return;
+  }
+  empty.style.display = "none";
+  document.querySelector(".attn-panel table").style.display = "table";
+
+  items.forEach(it => {
+    const tr = document.createElement("tr");
+    const statusClass = "s-" + (it.status||"").replace(/ /g,"_");
+    const prioClass = "p-" + (it.prioridade||"");
+    tr.innerHTML = `
+      <td class="mono">${it.apartamento}</td>
+      <td>${it.bloco||"—"}</td>
+      <td>${it.servico}</td>
+      <td>${it.responsavel || "—"}</td>
+      <td>${it.prioridade ? `<span class="tag ${prioClass}">${it.prioridade}</span>` : "—"}</td>
+      <td class="mono">${fmtDate(it.data_termino)}</td>
+      <td><span class="tag ${statusClass}">${it.status}</span></td>
+      <td class="mono">${it.dias_atraso > 0 ? it.dias_atraso + "d" : "—"}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+function renderAll(){
+  renderKPIs();
+  renderElevation();
+  renderChartBloco();
+  renderDonut();
+  renderChartServico();
+  renderChartAtraso();
+  renderAttention();
+  document.getElementById("stampDate").textContent = fmtDate(state.geradoEm);
+}
+
+document.getElementById("filtroBloco").addEventListener("change", (e) => {
+  state.filtro = e.target.value;
+  renderAll();
+});
+
+/* ---------------- SOURCE INDICATOR ---------------- */
+function setSourceIndicator(kind, detail){
+  const dot = document.getElementById("sourceDot");
+  const lbl = document.getElementById("sourceLabel");
+  dot.className = "source-dot " + kind;
+  const labels = {
+    snapshot: "Exemplo offline · conectar fonte",
+    file: "Arquivo local carregado",
+    loading: "Conectando…",
+    live: "Ao vivo · Google Sheets",
+    error: "Falha na conexão · tentar de novo",
+  };
+  lbl.textContent = labels[kind] || "Configurar fonte de dados";
+  state.source = kind;
+  state.sourceDetail = detail || "";
+}
+
+/* ---------------- CONNECT MODAL ---------------- */
+function openConnectModal(){
+  document.getElementById("connectOverlay").classList.add("open");
+  const existing = getSrcParam() || CONFIG.CSV_URL;
+  if(existing) document.getElementById("csvUrlInput").value = existing;
+}
+function closeConnectModal(){
+  document.getElementById("connectOverlay").classList.remove("open");
+}
+document.getElementById("connectOverlay").addEventListener("click", (e) => {
+  if(e.target.id === "connectOverlay") closeConnectModal();
+});
+
+function getSrcParam(){
+  return new URLSearchParams(location.search).get("src");
+}
+
+function connectSource(){
+  const url = document.getElementById("csvUrlInput").value.trim();
+  if(!url){ return; }
+  loadFromCSV(url, true);
+}
+function disconnectSource(){
+  state.controle = DEFAULT_CONTROLE.controle;
+  state.dados = buildDadosFromControle(DEFAULT_CONTROLE.controle);
+  state.geradoEm = DEFAULT_CONTROLE.gerado_em;
+  state.filtro = "Todos";
+  document.getElementById("filtroBloco").value = "Todos";
+  renderAll();
+  setSourceIndicator("snapshot");
+  document.getElementById("connectStatus").textContent = "";
+  document.getElementById("permalinkBox").classList.remove("show");
+  const url = new URL(location.href);
+  url.searchParams.delete("src");
+  history.replaceState(null, "", url.toString());
+}
+function copyPermalink(){
+  const text = document.getElementById("permalinkText").textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const original = btn.textContent;
+    btn.textContent = "Copiado!";
+    setTimeout(() => btn.textContent = original, 1500);
+  });
+}
+
+/* ---------------- CSV PARSING (live Google Sheets source) ---------------- */
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = "", inQuotes = false;
+  for(let i=0; i<text.length; i++){
+    const c = text[i], next = text[i+1];
+    if(inQuotes){
+      if(c === '"' && next === '"'){ field += '"'; i++; }
+      else if(c === '"'){ inQuotes = false; }
+      else field += c;
+    } else {
+      if(c === '"'){ inQuotes = true; }
+      else if(c === ','){ row.push(field); field = ""; }
+      else if(c === '\r'){ /* skip */ }
+      else if(c === '\n'){ row.push(field); rows.push(row); row = []; field = ""; }
+      else field += c;
+    }
+  }
+  if(field.length > 0 || row.length > 0){ row.push(field); rows.push(row); }
+  return rows.filter(r => !(r.length === 1 && r[0] === ""));
+}
+
+function parseCSVDate(s){
+  if(!s) return null;
+  s = String(s).trim();
+  if(!s) return null;
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m) return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  return null;
+}
+
+function controleFromCSVRows(rows){
+  return rows.filter(r => r[0]).map(r => ({
+    apartamento: String(r[0]),
+    bloco: r[1] || null,
+    pavimento: r[2] || null,
+    servico: r[3],
+    prioridade: r[4] || null,
+    responsavel: r[5] || null,
+    status: r[6] || "Não Iniciado",
+    data_inicio: parseCSVDate(r[7]),
+    data_termino: parseCSVDate(r[8]),
+    data_execucao: parseCSVDate(r[9]),
+    dias_atraso: Number(r[10]) || 0,
+    observacoes: r[11] || null,
+  }));
+}
+
+function loadFromCSV(url, fromModal){
+  setSourceIndicator("loading");
+  const statusEl = document.getElementById("connectStatus");
+  if(fromModal){ statusEl.className = "connect-status"; statusEl.textContent = "Conectando…"; }
+
+  fetch(url)
+    .then(res => { if(!res.ok) throw new Error("HTTP " + res.status); return res.text(); })
+    .then(text => {
+      const rows = parseCSV(text);
+      rows.shift(); // remove header row
+      const controle = controleFromCSVRows(rows);
+      if(controle.length === 0) throw new Error("Planilha vazia ou aba incorreta");
+
+      state.controle = controle;
+      state.dados = buildDadosFromControle(controle);
+      state.geradoEm = new Date().toISOString().slice(0,10);
+      state.filtro = "Todos";
+      document.getElementById("filtroBloco").value = "Todos";
+      renderAll();
+      setSourceIndicator("live", url);
+
+      const permalink = new URL(location.href);
+      permalink.search = "";
+      permalink.searchParams.set("src", url);
+      history.replaceState(null, "", permalink.toString());
+
+      if(fromModal){
+        statusEl.className = "connect-status ok";
+        statusEl.textContent = "✓ Conectado — dados carregados com sucesso.";
+        document.getElementById("permalinkText").textContent = permalink.toString();
+        document.getElementById("permalinkBox").classList.add("show");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      setSourceIndicator("error");
+      if(fromModal){
+        statusEl.className = "connect-status err";
+        statusEl.textContent = "✗ Não consegui carregar. Confira se o link foi publicado como CSV e está acessível publicamente.";
+      }
+    });
+}
+
+/* ---------------- MANUAL .xlsx UPLOAD (fallback) ---------------- */
+function colIdx(arr, i){ return arr && arr[i] !== undefined ? arr[i] : null; }
+function excelDateToISO(v){
+  if(v instanceof Date) return v.toISOString().slice(0,10);
+  return null;
+}
+
+function parseWorkbook(workbook){
+  const wsControle = workbook.Sheets["Controle Detalhado"];
+  if(!wsControle){
+    alert("Não encontrei a aba 'Controle Detalhado' no arquivo selecionado. Verifique se é a planilha de controle correta.");
+    return null;
+  }
+  const rowsControle = XLSX.utils.sheet_to_json(wsControle, {header:1, range:1, defval:null, cellDates:true});
+  const controle = rowsControle.filter(r => r[0]).map(r => ({
+    apartamento: String(colIdx(r,0)),
+    bloco: colIdx(r,1),
+    pavimento: colIdx(r,2),
+    servico: colIdx(r,3),
+    prioridade: colIdx(r,4),
+    responsavel: colIdx(r,5),
+    status: colIdx(r,6) || "Não Iniciado",
+    data_inicio: excelDateToISO(colIdx(r,7)),
+    data_termino: excelDateToISO(colIdx(r,8)),
+    data_execucao: excelDateToISO(colIdx(r,9)),
+    dias_atraso: Number(colIdx(r,10)) || 0,
+    observacoes: colIdx(r,11),
+  }));
+  return {controle};
+}
+
+function handleFile(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try{
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, {type:"array", cellDates:true});
+      const parsed = parseWorkbook(workbook);
+      if(!parsed) return;
+      state.controle = parsed.controle;
+      state.dados = buildDadosFromControle(parsed.controle);
+      state.geradoEm = new Date().toISOString().slice(0,10);
+      state.filtro = "Todos";
+      document.getElementById("filtroBloco").value = "Todos";
+      renderAll();
+      setSourceIndicator("file", file.name);
+      const url = new URL(location.href);
+      url.searchParams.delete("src");
+      history.replaceState(null, "", url.toString());
+    }catch(err){
+      console.error(err);
+      alert("Não consegui ler este arquivo. Confirme que é um .xlsx exportado a partir da planilha de controle original.");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+document.getElementById("fileInput").addEventListener("change", (e) => handleFile(e.target.files[0]));
+document.getElementById("fileInput2").addEventListener("change", (e) => handleFile(e.target.files[0]));
+
+/* ---------------- INIT ---------------- */
+(function init(){
+  const srcParam = getSrcParam();
+  if(srcParam){
+    renderAll();
+    loadFromCSV(srcParam, false);
+  } else if(CONFIG.CSV_URL){
+    renderAll();
+    loadFromCSV(CONFIG.CSV_URL, false);
+  } else {
+    renderAll();
+    setSourceIndicator("snapshot");
+  }
+})();
+</script>
+</body>
+</html>
