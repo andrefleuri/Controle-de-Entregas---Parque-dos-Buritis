@@ -316,6 +316,7 @@ footer.note{margin-top:22px; font-size:10.5px; color:var(--text-faint); text-ali
         <label class="btn" for="fileInput">Carregar arquivo (.xlsx)</label>
         <input type="file" id="fileInput" accept=".xlsx">
         <button class="btn" id="installBtn" style="display:none;" onclick="installApp()">Instalar app</button>
+        <button class="btn" id="refreshBtn" onclick="refreshNow()" title="Busca os dados mais recentes agora, sem recarregar a página">↻ Atualizar agora</button>
         <div class="source-badge" id="sourceBadge" onclick="openConnectModal()">
           <span class="source-dot snapshot" id="sourceDot"></span>
           <span id="sourceLabel">Configurar fonte de dados</span>
@@ -824,6 +825,28 @@ function connectSource(){
   if(!url){ return; }
   loadFromCSV(url, true);
 }
+
+function refreshNow(){
+  // Busca a fonte de dados atualmente conectada de novo, sem fechar/reabrir a página.
+  // Não resolve atraso de cache do próprio Google (ver aviso no source badge), mas
+  // evita o passo extra de recarregar a página inteira.
+  const btn = document.getElementById("refreshBtn");
+  const currentUrl = getSrcParam() || CONFIG.CSV_URL;
+  if(state.source === "file"){
+    alert("Os dados atuais vieram de um arquivo carregado manualmente — selecione o arquivo de novo em \"Carregar arquivo\" para atualizar.");
+    return;
+  }
+  if(!currentUrl){
+    openConnectModal();
+    return;
+  }
+  const original = btn.textContent;
+  btn.textContent = "Atualizando…";
+  btn.disabled = true;
+  loadFromCSV(currentUrl, false);
+  setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 900);
+}
+
 function disconnectSource(){
   state.controle = DEFAULT_CONTROLE.controle;
   state.dados = buildDadosFromControle(DEFAULT_CONTROLE.controle);
