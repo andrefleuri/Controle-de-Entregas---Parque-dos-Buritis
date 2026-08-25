@@ -1,0 +1,17 @@
+{
+  "name": "Parque dos Buritis — Controle de Entrega",
+  "short_name": "Buritis",
+  "description": "Menu de acesso rápido ao Painel Gerencial e ao formulário de atualização de serviços.",
+  "start_url": "./hub.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B1F2E",
+  "theme_color": "#0B1F2E",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

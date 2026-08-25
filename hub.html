@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parque dos Buritis</title>
+<link rel="manifest" href="./manifest-hub.json">
+<meta name="theme-color" content="#0B1F2E">
+<link rel="icon" type="image/png" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Buritis">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:#0B1F2E; --bg-panel:#122A3D; --bg-panel-alt:#16334A;
+  --line-ink:#2F5B77; --line-ink-soft:#1D3E54;
+  --accent-cyan:#5EC8D8; --accent-cyan-dim:#3A8A99;
+  --text-primary:#EAF2F5; --text-muted:#8FA9B8;
+  --c-concluido:#45C08A; --c-andamento:#E8A33D;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:var(--bg-deep);
+  background-image:
+    linear-gradient(var(--line-ink-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-ink-soft) 1px, transparent 1px);
+  background-size:28px 28px;
+  color:var(--text-primary);
+  font-family:'IBM Plex Sans', sans-serif;
+  min-height:100vh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:32px 20px;
+}
+.eyebrow{
+  font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.14em;
+  text-transform:uppercase; color:var(--accent-cyan); text-align:center;
+}
+h1{
+  font-family:'Space Grotesk', sans-serif; font-size:26px; font-weight:700;
+  margin:8px 0 4px 0; text-align:center; letter-spacing:-0.01em;
+}
+.sub{ color:var(--text-muted); font-size:13px; text-align:center; margin-bottom:36px; max-width:320px; line-height:1.5; }
+
+.logo{
+  width:64px; display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin-bottom:18px;
+}
+.logo div{ aspect-ratio:1; border-radius:3px; }
+
+.cards{ width:100%; max-width:360px; display:flex; flex-direction:column; gap:14px; }
+a.card{
+  display:flex; align-items:center; gap:16px;
+  background:var(--bg-panel); border:1px solid var(--line-ink); border-radius:8px;
+  padding:20px 18px; text-decoration:none; color:var(--text-primary);
+  transition:border-color .15s ease, transform .1s ease;
+}
+a.card:active{ transform:scale(0.98); }
+a.card.painel:hover, a.card.painel:focus-visible{ border-color:var(--accent-cyan-dim); }
+a.card.form:hover, a.card.form:focus-visible{ border-color:var(--c-andamento); }
+
+.card-icon{
+  width:44px; height:44px; border-radius:8px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:20px;
+}
+.card.painel .card-icon{ background:rgba(94,200,216,0.15); color:var(--accent-cyan); }
+.card.form .card-icon{ background:rgba(232,163,61,0.15); color:var(--c-andamento); }
+
+.card-text .title{ font-family:'Space Grotesk',sans-serif; font-size:15.5px; font-weight:700; }
+.card-text .desc{ font-size:12px; color:var(--text-muted); margin-top:2px; line-height:1.4; }
+.card-arrow{ margin-left:auto; color:var(--text-muted); font-size:18px; }
+
+footer{ margin-top:40px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#5B7A8A; text-align:center; letter-spacing:0.04em; }
+</style>
+</head>
+<body>
+  <div class="logo">
+    <div style="background:var(--c-concluido)"></div>
+    <div style="background:var(--accent-cyan)"></div>
+    <div style="background:var(--accent-cyan)"></div>
+    <div style="background:#4A6274"></div>
+    <div style="background:var(--accent-cyan)"></div>
+    <div style="background:#4A6274"></div>
+    <div style="background:#4A6274"></div>
+    <div style="background:var(--c-andamento)"></div>
+    <div style="background:#4A6274"></div>
+  </div>
+  <div class="eyebrow">Controle de Entrega</div>
+  <h1>Parque dos Buritis</h1>
+  <div class="sub">Escolha o que você quer fazer</div>
+
+  <div class="cards">
+    <a class="card painel" href="./index.html">
+      <div class="card-icon">▦</div>
+      <div class="card-text">
+        <div class="title">Painel Gerencial</div>
+        <div class="desc">Ver o mapa do prédio, KPIs e gráficos de andamento</div>
+      </div>
+      <div class="card-arrow">›</div>
+    </a>
+    <a class="card form" href="https://script.google.com/macros/s/AKfycbylrg22mN1lHeDLLpdRW6PUauZCYnCsmHac22DAyDezAfVw_6MCKdCt82KsvDP3gO2V/exec" target="_blank" rel="noopener">
+      <div class="card-icon">✎</div>
+      <div class="card-text">
+        <div class="title">Atualizar Serviço</div>
+        <div class="desc">Preencher status, prioridade e datas de um apartamento</div>
+      </div>
+      <div class="card-arrow">›</div>
+    </a>
+  </div>
+
+  <footer>USO INTERNO · ADMINISTRAÇÃO DA OBRA</footer>
+</body>
+</html>
