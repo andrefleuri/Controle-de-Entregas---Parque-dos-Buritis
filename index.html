@@ -905,7 +905,11 @@ function loadFromCSV(url, fromModal){
   const statusEl = document.getElementById("connectStatus");
   if(fromModal){ statusEl.className = "connect-status"; statusEl.textContent = "Conectando…"; }
 
-  fetch(url)
+  // Cache-busting: adiciona um parâmetro único a cada busca e desativa o cache
+  // do navegador, para nunca mostrar uma cópia antiga do CSV do Google Sheets.
+  const bustUrl = url + (url.includes("?") ? "&" : "?") + "_cb=" + Date.now();
+
+  fetch(bustUrl, { cache: "no-store" })
     .then(res => { if(!res.ok) throw new Error("HTTP " + res.status); return res.text(); })
     .then(text => {
       const rows = parseCSV(text);
